@@ -66,8 +66,7 @@ def find_total_entries(base_url):
 
 def get_arxiv_2023():
     # Define the base URL
-    # for i in range(2301, 2309):
-    for i in range(2309, 2310):
+    for i in range(2301, 2310):
         base_url = f'https://arxiv.org/list/cs/{i}'
 
         # Define the base URL and starting skip value
