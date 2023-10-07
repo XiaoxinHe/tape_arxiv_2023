@@ -1,19 +1,24 @@
-from torch_geometric.data import Data
 import torch
 import glob
 import json
 import pandas as pd
+import time
+
+
+from torch_geometric.data import Data
 
 
 def main():
-    files = glob.glob('data/paper_info/*.json')
+    start = time.time()
+
+    files = glob.glob('dataset/paper_info/*.json')
     paperids = []
     paperid2arxivid = {}
 
     arxiv_ids = []
     titles = []
     abstracts = []
-    categories = []
+    subjects = []
     for f in files:
         data = json.load(open(f))
         paperid2arxivid[data['paperId']] = data['arxiv_id']
@@ -21,10 +26,10 @@ def main():
         arxiv_ids.append(data['arxiv_id'])
         titles.append(data['title'])
         abstracts.append(data['abstract'])
-        categories.append(data['category'])
+        subjects.append(data['subject'])
 
     df = pd.DataFrame({'arxiv_id': arxiv_ids, 'title': titles,
-                       'abstract': abstracts, 'category': categories})
+                      'abstract': abstracts, 'subject': subjects})
 
     # construct labels
     mapping = pd.read_csv('dataset/ogbn_arxiv/mapping/labelidx2arxivcategeory.csv.gz',
@@ -32,15 +37,16 @@ def main():
     mapping['arxiv category'] = mapping['arxiv category'].apply(
         lambda x: x.split(' ')[-1])
     category2label = dict(zip(mapping['arxiv category'], mapping['label idx']))
-    df['label'] = df['category'].apply(
+    df['label'] = df['subject'].apply(
         lambda x: category2label[x.split('.')[-1].split(')')[0].lower()])
     df['node_id'] = [i for i in range(len(df))]
-    df.to_csv('data/paper_info.csv', index=False)
+    df.to_csv('dataset/arxiv_2023_full.csv', index=False)
 
     # construct graphs
+    print("Constructing a citation graph...")
     arxivid2nodeid = dict(zip(df['arxiv_id'], df['node_id']))
     edges = []
-    for f in (files):
+    for f in files:
         data = json.load(open(f))
 
         for r in data['references']:
@@ -56,8 +62,10 @@ def main():
                 edges.append((src, dst))
 
     data = Data(edge_index=torch.tensor(edges).t(),
-                y=torch.tensor(df['label']))
-    torch.save(data, 'data/arxiv_2023.pt')
+                y=torch.tensor(df['label']), num_nodes=len(df))
+    torch.save(data, 'dataset/arxiv_2023.pt')
+    print(
+        f"Finish constructing a citation graph in {(time.time() - start)/60:.2f} mins")
     print("# nodes: ", data.num_nodes)
     print("# edges: ", data.num_edges)
 
