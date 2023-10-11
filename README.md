@@ -1,4 +1,4 @@
-# arxiv_2023
+# tape_arxiv_2023
 
 This repository contains scripts for constructing and processing the `arxiv-2023` dataset, which is a sub-repo for [TAPE](https://github.com/XiaoxinHe/TAPE/).
 
